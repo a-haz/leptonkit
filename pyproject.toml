@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "leptonkit"
+version = "0.1.0"
+description = "Capture and process radiometric Y16 frames from a FLIR Lepton on a PureThermal board"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [{name = "Aiman Hazim", email = "dev@aimanhazim.com"}]
+requires-python = ">=3.9"
+dependencies = [
+    "numpy>=1.22",
+    "opencv-python-headless>=4.5",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7"]
+
+[project.scripts]
+leptonkit = "leptonkit.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
