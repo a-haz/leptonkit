@@ -46,6 +46,15 @@ def cmd_capture(args) -> int:
     return 0
 
 
+def cmd_record(args) -> int:
+    from leptonkit.trigger import Recorder, TriggerSettings
+
+    settings = TriggerSettings(body_lo_c=args.body_lo, body_hi_c=args.body_hi, motion_trigger=args.motion_px)
+    Recorder(args.out, device=args.device, settings=settings, min_free_gb=args.min_free_gb,
+             max_total_gb=args.max_total_gb, live_host=args.live_host, live_port=args.live_port).run()
+    return 0
+
+
 def _load_frames(path: Path) -> np.ndarray:
     if path.suffix == ".npy":
         stack = np.load(path)
@@ -103,6 +112,18 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--out", help="output folder (default: a timestamped folder here)")
     s.add_argument("--no-mp4", action="store_true", help="skip the MP4 preview")
     s.set_defaults(func=cmd_capture)
+
+    s = sub.add_parser("record", help="record events when a person moves through the view")
+    s.add_argument("--out", required=True, help="folder for events/, events.jsonl and recorder.log")
+    s.add_argument("--device", help="V4L2 node (default: auto-detect, re-detected after a replug)")
+    s.add_argument("--body-lo", type=float, default=28.5, help="lower bound of the body band, C")
+    s.add_argument("--body-hi", type=float, default=38.0, help="upper bound of the body band, C")
+    s.add_argument("--motion-px", type=int, default=40, help="new warm pixels that count as motion")
+    s.add_argument("--min-free-gb", type=float, default=5.0, help="stop recording below this free space")
+    s.add_argument("--max-total-gb", type=float, default=10.0, help="stop recording above this total size")
+    s.add_argument("--live-host", default="127.0.0.1", help="address for the live view")
+    s.add_argument("--live-port", type=int, default=8089, help="port for the live view, 0 = off")
+    s.set_defaults(func=cmd_record)
 
     s = sub.add_parser("render", help="render .y16 files or a y16_stack.npy to PNG")
     s.add_argument("inputs", nargs="+")
