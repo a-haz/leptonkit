@@ -55,6 +55,14 @@ def cmd_record(args) -> int:
     return 0
 
 
+def cmd_pair(args) -> int:
+    from leptonkit.pair import pair_session
+
+    rows = pair_session(args.session, rot=args.rot, rgb_rot=args.rgb_rot, stride=args.stride)
+    print(f"{len(rows) - 1} pairs -> {Path(args.session) / 'pairs'}")
+    return 0
+
+
 def _load_frames(path: Path) -> np.ndarray:
     if path.suffix == ".npy":
         stack = np.load(path)
@@ -124,6 +132,15 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--live-host", default="127.0.0.1", help="address for the live view")
     s.add_argument("--live-port", type=int, default=8089, help="port for the live view, 0 = off")
     s.set_defaults(func=cmd_record)
+
+    s = sub.add_parser("pair", help="RGB and thermal side-by-side panels for a ThermalRig session")
+    s.add_argument("session")
+    s.add_argument("--rot", choices=["none", "ccw90", "180", "cw90"], default="none",
+                   help="rotation that makes the thermal image upright")
+    s.add_argument("--rgb-rot", choices=["none", "ccw90", "180", "cw90"], default="none",
+                   help="rotation that makes the RGB image upright")
+    s.add_argument("--stride", type=int, default=9, help="use every Nth thermal frame (9 = about 1 per second)")
+    s.set_defaults(func=cmd_pair)
 
     s = sub.add_parser("render", help="render .y16 files or a y16_stack.npy to PNG")
     s.add_argument("inputs", nargs="+")
