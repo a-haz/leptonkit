@@ -109,3 +109,35 @@ def test_body_band_in_centikelvin():
     gate = MotionGate(TriggerSettings(body_lo_c=28.5, body_hi_c=38.0))
     assert gate.raw_lo == int((28.5 + 273.15) * 100)
     assert gate.raw_hi == int((38.0 + 273.15) * 100)
+
+
+def test_recorder_saves_event_files(tmp_path):
+    import json
+
+    from leptonkit.trigger import Event, Recorder
+
+    rec = Recorder(tmp_path, live_port=0)
+    frames = [person_at(10 + i) for i in range(12)]
+    ev = Event(frames=frames, stamps=[1_800_000_000.0 + 0.11 * i for i in range(12)],
+               hots=[1400] * 12, peak_motion=900)
+    d = rec.save(ev)
+    stack = np.load(f"{d}/y16_stack.npy")
+    assert stack.shape == (12, 120, 160) and stack.dtype == np.uint16
+    meta = json.loads(open(f"{d}/meta.json").read())
+    assert meta["n_frames"] == 12
+    assert meta["peak_temp_c"] == 34.0
+    lines = (tmp_path / "events.jsonl").read_text().splitlines()
+    assert len(lines) == 1 and json.loads(lines[0])["dir"] == d
+    assert "event saved" in (tmp_path / "recorder.log").read_text()
+
+
+def test_live_view_renders_jpeg():
+    from leptonkit.trigger import LiveView
+
+    view = LiveView()
+    assert view.jpeg("grid") is None
+    view.publish(person_at(40), True, 1400, 600)
+    for cmap in ("grid", "inferno", "whitehot", "blackhot"):
+        jpg = view.jpeg(cmap)
+        assert jpg[:2] == b"\xff\xd8"
+    assert b"/stream?cmap=grid" in view.page()
