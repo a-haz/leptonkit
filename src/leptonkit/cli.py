@@ -63,6 +63,18 @@ def cmd_pair(args) -> int:
     return 0
 
 
+def cmd_streams(args) -> int:
+    from leptonkit.streams import record
+
+    try:
+        record(args.out, duration=args.duration, lepton=not args.no_lepton, rgb=not args.no_rgb,
+               lepton_dev=args.device, rgb_dev=args.rgb_device, rgb_match=args.rgb_match)
+    except RuntimeError as e:
+        print(f"leptonkit: {e}", file=sys.stderr)
+        return 1
+    return 0
+
+
 def _load_frames(path: Path) -> np.ndarray:
     if path.suffix == ".npy":
         stack = np.load(path)
@@ -141,6 +153,16 @@ def build_parser() -> argparse.ArgumentParser:
                    help="rotation that makes the RGB image upright")
     s.add_argument("--stride", type=int, default=9, help="use every Nth thermal frame (9 = about 1 per second)")
     s.set_defaults(func=cmd_pair)
+
+    s = sub.add_parser("streams", help="record the Lepton and a webcam on one clock")
+    s.add_argument("out")
+    s.add_argument("--duration", type=float, default=150.0, help="seconds (or create OUT/STOP to end early)")
+    s.add_argument("--device", help="Lepton V4L2 node (default: auto-detect)")
+    s.add_argument("--rgb-device", help="webcam V4L2 node (default: auto-detect)")
+    s.add_argument("--rgb-match", help="pick the webcam whose v4l2-ctl --all output contains this text")
+    s.add_argument("--no-rgb", action="store_true")
+    s.add_argument("--no-lepton", action="store_true")
+    s.set_defaults(func=cmd_streams)
 
     s = sub.add_parser("render", help="render .y16 files or a y16_stack.npy to PNG")
     s.add_argument("inputs", nargs="+")
