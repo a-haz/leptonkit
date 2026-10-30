@@ -23,11 +23,18 @@ equalisation AGC. I wrote it for my own research with a thermal camera.
 pip install .
 ```
 
-This installs numpy, opencv-python-headless and a `leptonkit` command. For
-the tests:
+This installs numpy, opencv-python-headless and a `leptonkit` command.
 
-```
-pip install .[test]
+## Running tests
+
+The tests run on Python 3.9 or newer and do not need a camera, since they
+work on synthetic frames. From the repository root, optionally in a fresh
+virtual environment:
+
+```bash
+python3 -m venv .venv
+. .venv/bin/activate
+pip install '.[test]'
 pytest
 ```
 
