@@ -1,6 +1,7 @@
 import json
 
 import numpy as np
+import pytest
 
 from leptonkit import cli, y16
 
@@ -58,3 +59,28 @@ def test_record_and_streams_honour_lepton_dev(tmp_path, monkeypatch):
     assert seen == {"record": "/dev/video7", "streams": "/dev/video7"}
     assert cli.main(["record", "--out", str(tmp_path), "--device", "/dev/video3"]) == 0
     assert seen["record"] == "/dev/video3"                   # --device still wins
+
+
+@pytest.mark.parametrize("argv", [
+    ["capture", "--frames", "0"],
+    ["capture", "--frames", "-5"],
+    ["pair", "session", "--stride", "0"],
+    ["render", "raw_1.y16", "--out", "png", "--scale", "0"],
+])
+def test_counts_must_be_positive(argv, monkeypatch, capsys):
+    from leptonkit import capture
+
+    monkeypatch.setenv("LEPTON_DEV", "/dev/video9")
+    monkeypatch.setattr(capture, "capture", lambda *a, **kw: pytest.fail("capture ran"))
+    with pytest.raises(SystemExit) as exc:
+        cli.main(argv)
+    assert exc.value.code == 2 and "at least 1" in capsys.readouterr().err
+
+
+def test_record_needs_an_ordered_body_band(tmp_path, monkeypatch):
+    from leptonkit import trigger
+
+    monkeypatch.setattr(trigger, "Recorder", lambda *a, **kw: pytest.fail("recorder started"))
+    with pytest.raises(SystemExit) as exc:
+        cli.main(["record", "--out", str(tmp_path), "--body-lo", "38", "--body-hi", "28.5"])
+    assert "--body-lo" in str(exc.value.code)

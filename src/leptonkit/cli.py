@@ -17,6 +17,13 @@ def _stamp() -> str:
     return datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
 
 
+def _positive_int(text: str) -> int:
+    value = int(text)
+    if value < 1:
+        raise argparse.ArgumentTypeError(f"must be at least 1, got {value}")
+    return value
+
+
 def _chosen_device(arg: str | None) -> str | None:
     """--device, else $LEPTON_DEV, else None (auto-detect)."""
     return arg or os.environ.get("LEPTON_DEV") or None
@@ -54,6 +61,8 @@ def cmd_capture(args) -> int:
 def cmd_record(args) -> int:
     from leptonkit.trigger import Recorder, TriggerSettings
 
+    if not args.body_lo < args.body_hi:
+        sys.exit("leptonkit: --body-lo must be below --body-hi")
     settings = TriggerSettings(body_lo_c=args.body_lo, body_hi_c=args.body_hi, motion_trigger=args.motion_px)
     Recorder(args.out, device=_chosen_device(args.device), settings=settings, min_free_gb=args.min_free_gb,
              max_total_gb=args.max_total_gb, live_host=args.live_host, live_port=args.live_port).run()
@@ -133,7 +142,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("capture", help="capture N raw frames to a folder")
     s.add_argument("--device", help="V4L2 node (default: $LEPTON_DEV or auto-detect)")
-    s.add_argument("--frames", type=int, default=135, help="number of frames (default 135, about 15 s)")
+    s.add_argument("--frames", type=_positive_int, default=135, help="number of frames (default 135, about 15 s)")
     s.add_argument("--out", help="output folder (default: a timestamped folder here)")
     s.add_argument("--no-mp4", action="store_true", help="skip the MP4 preview")
     s.set_defaults(func=cmd_capture)
@@ -156,7 +165,8 @@ def build_parser() -> argparse.ArgumentParser:
                    help="rotation that makes the thermal image upright")
     s.add_argument("--rgb-rot", choices=["none", "ccw90", "180", "cw90"], default="none",
                    help="rotation that makes the RGB image upright")
-    s.add_argument("--stride", type=int, default=9, help="use every Nth thermal frame (9 = about 1 per second)")
+    s.add_argument("--stride", type=_positive_int, default=9,
+                   help="use every Nth thermal frame (9 = about 1 per second)")
     s.set_defaults(func=cmd_pair)
 
     s = sub.add_parser("streams", help="record the Lepton and a webcam on one clock")
@@ -175,7 +185,7 @@ def build_parser() -> argparse.ArgumentParser:
     s.add_argument("--out", required=True)
     s.add_argument("--agc", choices=["heq", "linear"], default="heq")
     s.add_argument("--palette", choices=["whitehot", "blackhot", "inferno"], default="whitehot")
-    s.add_argument("--scale", type=int, default=1, help="integer upscale factor")
+    s.add_argument("--scale", type=_positive_int, default=1, help="integer upscale factor")
     s.set_defaults(func=cmd_render)
 
     s = sub.add_parser("stats", help="temperature range of a .y16 file or y16_stack.npy")
