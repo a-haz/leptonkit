@@ -123,7 +123,7 @@ def cmd_stats(args) -> int:
     frames = _load_frames(Path(args.input))
     c = y16.raw_to_celsius(frames)
     print(json.dumps({
-        "frames": int(len(frames)),
+        "frames": len(frames),
         "radiometric": y16.looks_radiometric(frames),
         "celsius_min": round(float(c.min()), 2),
         "celsius_median": round(float(np.median(c)), 2),

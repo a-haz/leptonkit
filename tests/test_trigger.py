@@ -126,7 +126,8 @@ def test_recorder_saves_event_files(tmp_path):
     d = rec.save(ev)
     stack = np.load(f"{d}/y16_stack.npy")
     assert stack.shape == (12, 120, 160) and stack.dtype == np.uint16
-    meta = json.loads(open(f"{d}/meta.json").read())
+    with open(f"{d}/meta.json") as f:
+        meta = json.load(f)
     assert meta["n_frames"] == 12
     assert meta["peak_temp_c"] == 34.0
     lines = (tmp_path / "events.jsonl").read_text().splitlines()

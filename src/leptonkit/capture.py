@@ -18,7 +18,7 @@ from leptonkit.video import write_mp4
 def summarize(stack: np.ndarray, seconds: float) -> dict:
     raw = stack.astype(np.float64)
     out = {
-        "frames": int(len(stack)),
+        "frames": len(stack),
         "shape": list(stack.shape),
         "seconds": round(seconds, 2),
         "fps": round(len(stack) / seconds, 2) if seconds > 0 else None,
@@ -41,7 +41,10 @@ def save_capture(out_dir, frames, stamps, fps: float = 9.0, mp4: bool = True) ->
     np.save(os.path.join(out_dir, "y16_stack.npy"), stack)
     np.save(os.path.join(out_dir, "timestamps_unix.npy"), np.asarray(stamps, dtype=np.float64))
     mid = agc.heq(stack[len(stack) // 2])
-    up = lambda im: cv2.resize(im, (640, 480), interpolation=cv2.INTER_NEAREST)  # noqa: E731
+
+    def up(im):
+        return cv2.resize(im, (640, 480), interpolation=cv2.INTER_NEAREST)
+
     cv2.imwrite(os.path.join(out_dir, "preview_whitehot.png"), up(mid))
     cv2.imwrite(os.path.join(out_dir, "preview_blackhot.png"), up(255 - mid))
     written = ["y16_stack.npy", "timestamps_unix.npy", "preview_whitehot.png", "preview_blackhot.png"]
