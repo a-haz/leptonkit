@@ -131,6 +131,18 @@ def test_recorder_saves_event_files(tmp_path):
     assert "event saved" in (tmp_path / "recorder.log").read_text()
 
 
+def test_recorder_never_overwrites_an_event(tmp_path):
+    from leptonkit.trigger import Event, Recorder
+
+    rec = Recorder(tmp_path, live_port=0)
+    stamps = [1_800_000_000.0 + 0.11 * i for i in range(12)]
+    first = rec.save(Event(frames=[person_at(10)] * 12, stamps=stamps, hots=[1400] * 12))
+    second = rec.save(Event(frames=[person_at(50)] * 5, stamps=stamps[:5], hots=[1400] * 5))
+    assert first != second and second.startswith(first)
+    assert np.load(f"{first}/y16_stack.npy").shape[0] == 12
+    assert np.load(f"{second}/y16_stack.npy").shape[0] == 5
+
+
 def test_live_view_renders_jpeg():
     from leptonkit.trigger import LiveView
 

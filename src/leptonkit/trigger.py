@@ -293,8 +293,15 @@ class Recorder:
         from leptonkit.video import write_mp4
 
         ts = datetime.datetime.fromtimestamp(ev.stamps[0]).strftime("%Y%m%d_%H%M%S")
-        d = os.path.join(self.events_dir, f"evt_{ts}")
-        os.makedirs(d, exist_ok=True)
+        d = base = os.path.join(self.events_dir, f"evt_{ts}")
+        n = 1
+        while True:   # never write into an earlier event (same second, a clock step, a second recorder)
+            try:
+                os.makedirs(d)
+                break
+            except FileExistsError:
+                n += 1
+                d = f"{base}_{n}"
         stack = np.stack(ev.frames).astype(np.uint16)
         np.save(os.path.join(d, "y16_stack.npy"), stack)
         np.save(os.path.join(d, "timestamps_unix.npy"), np.array(ev.stamps))
