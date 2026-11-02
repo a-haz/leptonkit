@@ -1,3 +1,5 @@
+import os
+
 import numpy as np
 
 from leptonkit import capture, y16
@@ -29,3 +31,16 @@ def test_save_capture_writes_stack_and_previews(tmp_path):
     assert (tmp_path / "cap" / "preview_whitehot.png").exists()
     assert (tmp_path / "cap" / "preview_blackhot.png").exists()
     assert "capture_whitehot.mp4" not in res["files"]
+
+
+def test_failing_ffmpeg_does_not_lose_the_capture(tmp_path, monkeypatch):
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir()
+    fake = bin_dir / "ffmpeg"                       # like a build without libx264
+    fake.write_text("#!/bin/sh\necho 'Unknown encoder libx264' >&2\nexit 1\n")
+    fake.chmod(0o755)
+    monkeypatch.setenv("PATH", f"{bin_dir}:{os.environ['PATH']}")
+    frames = [y16.celsius_to_raw(np.full((120, 160), 20.0 + i)) for i in range(20)]
+    res = capture.save_capture(tmp_path / "cap", frames, [float(i) for i in range(20)], mp4=True)
+    assert "capture_whitehot.mp4" not in res["files"]
+    assert np.load(tmp_path / "cap" / "y16_stack.npy").shape == (20, 120, 160)
