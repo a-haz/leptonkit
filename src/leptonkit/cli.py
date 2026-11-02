@@ -161,7 +161,8 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("streams", help="record the Lepton and a webcam on one clock")
     s.add_argument("out")
-    s.add_argument("--duration", type=float, default=150.0, help="seconds (or create OUT/STOP to end early)")
+    s.add_argument("--duration", type=float, default=150.0,
+                   help="seconds (or create OUT/STOP or press Ctrl-C to end early)")
     s.add_argument("--device", help="Lepton V4L2 node (default: $LEPTON_DEV or auto-detect)")
     s.add_argument("--rgb-device", help="webcam V4L2 node (default: auto-detect)")
     s.add_argument("--rgb-match", help="pick the webcam whose v4l2-ctl --all output contains this text")

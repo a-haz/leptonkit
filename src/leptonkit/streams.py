@@ -6,8 +6,8 @@
 
 Every frame is stamped with time.time() when it is read, so both streams share
 one clock. Devices are found by what they offer, not by /dev/videoN.
-Recording stops after the duration or when a file named STOP appears in the
-output folder. streams.json reports frame counts, rates and errors.
+Recording stops after the duration, when a file named STOP appears in the
+output folder or on Ctrl-C. streams.json reports frame counts, rates and errors.
 """
 from __future__ import annotations
 
@@ -153,15 +153,18 @@ def record(out, duration=150.0, lepton=True, rgb=True, lepton_dev=None, rgb_dev=
     for s in streams:
         s.start()
     last = -1
-    while time.time() - t0 < duration and not os.path.exists(os.path.join(out, "STOP")):
-        time.sleep(0.5)
-        el = int(time.time() - t0)
-        if el % 10 == 0 and el != last:
-            last = el
-            print(f"[streams] t={el:5d}s " + " ".join(f"{s.name_}={s.n}" for s in streams), flush=True)
+    try:
+        while time.time() - t0 < duration and not os.path.exists(os.path.join(out, "STOP")):
+            time.sleep(0.5)
+            el = int(time.time() - t0)
+            if el % 10 == 0 and el != last:
+                last = el
+                print(f"[streams] t={el:5d}s " + " ".join(f"{s.name_}={s.n}" for s in streams), flush=True)
+    except KeyboardInterrupt:
+        print("[streams] interrupted, saving what was recorded", flush=True)
     stop.set()
     for s in streams:
-        s.join(timeout=15)
+        s.join()   # the threads write their files after stopping; exiting earlier would cut them off
     rep = report(streams, {"lepton": lep_dev, "rgb": rgb_dev}, t0, time.time())
     with open(os.path.join(out, "streams.json"), "w") as f:
         json.dump(rep, f, indent=1)
