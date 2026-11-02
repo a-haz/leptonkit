@@ -59,12 +59,17 @@ by side (`--live-port 0` turns it off). It triggers on new pixels in the body
 temperature band (28.5 to 38 C by default) compared with about a second
 earlier, so a warm object that does not move never starts an event. Each
 event keeps about 5 s from before the trigger, ends after about 5 s of quiet
-and is capped at about 90 s. It stops recording when free space drops below
-`--min-free-gb` or the events folder grows past `--max-total-gb`.
+and is capped at about 90 s. It starts no new event once free space drops
+below `--min-free-gb` or the events folder grows past `--max-total-gb`.
+
+`streams` stops after `--duration` seconds, when a file named `STOP` appears
+in its folder, or on Ctrl-C, and then saves what it recorded.
 
 `pair` works on a session folder from the ThermalRig Android app
 (`tir/raw_<t_ns>.y16` and `rgb/rgb_<t_ns>.jpg`). It writes
 `pairs/pair_<t_ns>.png` and `pairs/index.csv` inside the session folder.
+Only Lepton frames (160x120, centikelvin) are paired; frames of any other
+size, such as TC001 frames, are skipped.
 
 From Python:
 
