@@ -104,21 +104,27 @@ class RgbStream(Stream):
         if not cap.isOpened():
             self.err = f"cannot open {self.dev}"
             return
-        wr = cv2.VideoWriter(os.path.join(self.out, "rgb.avi"), cv2.VideoWriter_fourcc(*"MJPG"), 30.0, (640, 480))
-        first = True
+        # The writer silently drops frames of any other size than its own, so it
+        # takes the size of the first frame: a camera that ignored 640x480 would
+        # otherwise leave stamps without frames.
+        wr = None
         while not self.stop_evt.is_set():
             ok, f = cap.read()
             t = time.time()
             if not ok:
                 continue
-            if first:
-                first = False
+            if wr is None:
                 cv2.imwrite(os.path.join(self.out, "rgb_first.jpg"), f)
+                size = (f.shape[1], f.shape[0])
+                wr = cv2.VideoWriter(os.path.join(self.out, "rgb.avi"), cv2.VideoWriter_fourcc(*"MJPG"), 30.0, size)
+            elif (f.shape[1], f.shape[0]) != size:
+                continue
             wr.write(f)
             self.stamps.append(t)
             self.n += 1
         cap.release()
-        wr.release()
+        if wr is not None:
+            wr.release()
         np.save(os.path.join(self.out, "rgb_timestamps_unix.npy"), np.array(self.stamps))
 
 

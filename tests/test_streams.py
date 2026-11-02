@@ -54,3 +54,43 @@ def test_ctrl_c_still_saves(tmp_path, monkeypatch):
         pytest.fail("Ctrl-C escaped record() before the streams were stopped and saved")
     assert saved == ["y16_stack.npy"]
     assert json.loads((tmp_path / "streams.json").read_text())["lepton"] == rep["lepton"]
+
+
+def test_rgb_video_keeps_every_stamped_frame(tmp_path, monkeypatch):
+    import cv2
+    import numpy as np
+
+    stop = threading.Event()
+
+    class FakeCapture:
+        """A webcam that ignores the 640x480 request and sends 1280x720."""
+
+        def __init__(self, *a):
+            self.left = 3
+
+        def set(self, *a):
+            return False
+
+        def isOpened(self):
+            return True
+
+        def read(self):
+            if self.left == 0:
+                stop.set()
+                return False, None
+            self.left -= 1
+            return True, np.full((720, 1280, 3), 60 * self.left, np.uint8)
+
+        def release(self):
+            pass
+
+    read_back = cv2.VideoCapture
+    monkeypatch.setattr(cv2, "VideoCapture", FakeCapture)
+    rgb = streams.RgbStream("/dev/video0", str(tmp_path), stop)
+    rgb.run()
+    cap = read_back(str(tmp_path / "rgb.avi"))
+    n = 0
+    while cap.read()[0]:
+        n += 1
+    cap.release()
+    assert rgb.n == len(rgb.stamps) == n == 3
