@@ -55,8 +55,8 @@ class Event:
 class MotionGate:
     def __init__(self, settings: TriggerSettings | None = None):
         self.s = settings or TriggerSettings()
-        self.raw_lo = int((self.s.body_lo_c + y16.KELVIN_OFFSET) * 100)
-        self.raw_hi = int((self.s.body_hi_c + y16.KELVIN_OFFSET) * 100)
+        self.raw_lo = int(y16.celsius_to_raw(self.s.body_lo_c))
+        self.raw_hi = int(y16.celsius_to_raw(self.s.body_hi_c))
         self.reset()
 
     def reset(self) -> None:

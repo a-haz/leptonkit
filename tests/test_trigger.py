@@ -107,8 +107,11 @@ def test_flush_returns_running_event_and_resets():
 
 def test_body_band_in_centikelvin():
     gate = MotionGate(TriggerSettings(body_lo_c=28.5, body_hi_c=38.0))
-    assert gate.raw_lo == int((28.5 + 273.15) * 100)
-    assert gate.raw_hi == int((38.0 + 273.15) * 100)
+    # (28.5 + 273.15) * 100 is 30164.999... in floating point; truncating it
+    # would let 28.49 C in and keep 38.00 C out
+    assert (gate.raw_lo, gate.raw_hi) == (30165, 31115)
+    edges = y16.celsius_to_raw(np.array([28.49, 28.5, 38.0, 38.01]))
+    assert [gate.raw_lo <= r <= gate.raw_hi for r in edges] == [False, True, True, False]
 
 
 def test_recorder_saves_event_files(tmp_path):
