@@ -48,6 +48,14 @@ def test_skips_frames_of_another_size(tmp_path, capsys):
     assert "skip:" in capsys.readouterr().out
 
 
+def test_skips_an_unreadable_rgb_frame(tmp_path, capsys):
+    t0 = make_session(tmp_path, n_tir=10, n_rgb=4)
+    (tmp_path / "rgb" / f"rgb_{t0 + 3 * 300_000_000}.jpg").write_bytes(b"\xff\xd8 cut short")
+    rows = pair_session(tmp_path, stride=3)
+    assert len(rows) == 1 + 3            # thermal frame 9 has only the broken JPEG nearby
+    assert "skip: cannot read" in capsys.readouterr().out
+
+
 def test_cli_pair(tmp_path, capsys):
     make_session(tmp_path)
     assert cli.main(["pair", str(tmp_path), "--stride", "5"]) == 0

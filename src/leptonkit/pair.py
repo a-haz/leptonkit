@@ -59,8 +59,11 @@ def pair_session(session, rot: str = "none", rgb_rot: str = "none", stride: int 
         except ValueError as e:
             print("skip:", e)
             continue
-        tir, lo, hi = tir_panel(c, ROT_K[rot])
         rgb = cv2.imread(str(rp))
+        if rgb is None:                     # e.g. a JPEG cut short when the app was killed
+            print("skip: cannot read", rp)
+            continue
+        tir, lo, hi = tir_panel(c, ROT_K[rot])
         if ROT_K[rgb_rot]:
             rgb = np.ascontiguousarray(np.rot90(rgb, k=ROT_K[rgb_rot]))
         s = PANEL_H / rgb.shape[0]
