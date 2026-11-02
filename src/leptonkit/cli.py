@@ -17,10 +17,15 @@ def _stamp() -> str:
     return datetime.datetime.now().strftime("%Y-%m-%d_%H%M%S")
 
 
+def _chosen_device(arg: str | None) -> str | None:
+    """--device, else $LEPTON_DEV, else None (auto-detect)."""
+    return arg or os.environ.get("LEPTON_DEV") or None
+
+
 def _device(arg: str | None) -> str:
     from leptonkit.device import find_lepton
 
-    dev = arg or os.environ.get("LEPTON_DEV") or find_lepton()
+    dev = _chosen_device(arg) or find_lepton()
     if not dev:
         sys.exit("leptonkit: no device offering Y16 at 160x120 found (pass --device)")
     return dev
@@ -50,7 +55,7 @@ def cmd_record(args) -> int:
     from leptonkit.trigger import Recorder, TriggerSettings
 
     settings = TriggerSettings(body_lo_c=args.body_lo, body_hi_c=args.body_hi, motion_trigger=args.motion_px)
-    Recorder(args.out, device=args.device, settings=settings, min_free_gb=args.min_free_gb,
+    Recorder(args.out, device=_chosen_device(args.device), settings=settings, min_free_gb=args.min_free_gb,
              max_total_gb=args.max_total_gb, live_host=args.live_host, live_port=args.live_port).run()
     return 0
 
@@ -68,7 +73,7 @@ def cmd_streams(args) -> int:
 
     try:
         record(args.out, duration=args.duration, lepton=not args.no_lepton, rgb=not args.no_rgb,
-               lepton_dev=args.device, rgb_dev=args.rgb_device, rgb_match=args.rgb_match)
+               lepton_dev=_chosen_device(args.device), rgb_dev=args.rgb_device, rgb_match=args.rgb_match)
     except RuntimeError as e:
         print(f"leptonkit: {e}", file=sys.stderr)
         return 1
@@ -135,7 +140,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     s = sub.add_parser("record", help="record events when a person moves through the view")
     s.add_argument("--out", required=True, help="folder for events/, events.jsonl and recorder.log")
-    s.add_argument("--device", help="V4L2 node (default: auto-detect, re-detected after a replug)")
+    s.add_argument("--device", help="V4L2 node (default: $LEPTON_DEV or auto-detect, re-detected after a replug)")
     s.add_argument("--body-lo", type=float, default=28.5, help="lower bound of the body band, C")
     s.add_argument("--body-hi", type=float, default=38.0, help="upper bound of the body band, C")
     s.add_argument("--motion-px", type=int, default=40, help="new warm pixels that count as motion")
@@ -157,7 +162,7 @@ def build_parser() -> argparse.ArgumentParser:
     s = sub.add_parser("streams", help="record the Lepton and a webcam on one clock")
     s.add_argument("out")
     s.add_argument("--duration", type=float, default=150.0, help="seconds (or create OUT/STOP to end early)")
-    s.add_argument("--device", help="Lepton V4L2 node (default: auto-detect)")
+    s.add_argument("--device", help="Lepton V4L2 node (default: $LEPTON_DEV or auto-detect)")
     s.add_argument("--rgb-device", help="webcam V4L2 node (default: auto-detect)")
     s.add_argument("--rgb-match", help="pick the webcam whose v4l2-ctl --all output contains this text")
     s.add_argument("--no-rgb", action="store_true")

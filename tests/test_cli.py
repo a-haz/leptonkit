@@ -36,3 +36,25 @@ def test_render_y16_and_stack(tmp_path):
     img = cv2.imread(str(out / "raw_100.png"), cv2.IMREAD_UNCHANGED)
     assert img.shape == (240, 320)
     assert img[120, 160] > img[10, 10]
+
+
+def test_record_and_streams_honour_lepton_dev(tmp_path, monkeypatch):
+    from leptonkit import streams, trigger
+
+    seen = {}
+
+    class FakeRecorder:
+        def __init__(self, out, device=None, **kw):
+            seen["record"] = device
+
+        def run(self):
+            pass
+
+    monkeypatch.setattr(trigger, "Recorder", FakeRecorder)
+    monkeypatch.setattr(streams, "record", lambda out, lepton_dev=None, **kw: seen.update(streams=lepton_dev))
+    monkeypatch.setenv("LEPTON_DEV", "/dev/video7")
+    assert cli.main(["record", "--out", str(tmp_path)]) == 0
+    assert cli.main(["streams", str(tmp_path / "s")]) == 0
+    assert seen == {"record": "/dev/video7", "streams": "/dev/video7"}
+    assert cli.main(["record", "--out", str(tmp_path), "--device", "/dev/video3"]) == 0
+    assert seen["record"] == "/dev/video3"                   # --device still wins
